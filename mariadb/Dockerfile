@@ -1,9 +1,9 @@
-FROM fedora:22
+FROM fedora:23
 
-# MySQL image for OpenShift.
+# MariaDB image for OpenShift.
 #
 # Volumes:
-#  * /var/lib/mysql/data - Datastore for MySQL
+#  * /var/lib/mysql/data - Datastore for MariaDB
 # Environment:
 #  * $MYSQL_USER - Database user name
 #  * $MYSQL_PASSWORD - User's password
@@ -12,7 +12,7 @@ FROM fedora:22
 
 MAINTAINER http://fedoraproject.org/wiki/Cloud
 
-ENV MARIADB_VERSION=10.0 \
+ENV MYSQL_VERSION=10.0 \
     HOME=/var/lib/mysql
 
 LABEL io.k8s.description="MariaDB is a multi-user, multi-threaded SQL database server" \
@@ -25,24 +25,27 @@ EXPOSE 3306
 # This image must forever use UID 27 for mysql user so our volumes are
 # safe in the future. This should *never* change, the last test is there
 # to make sure of that.
-RUN dnf -y --setopt=tsflags=nodocs install gettext hostname bind-utils mariadb-server mariadb && \
-    dnf clean all && \
+RUN yum -y --setopt=tsflags=nodocs install gettext hostname bind-utils mariadb-server mariadb && \
+    yum clean all && \
     mkdir -p /var/lib/mysql/data && chown -R mysql.0 /var/lib/mysql && \
     test "$(id mysql)" = "uid=27(mysql) gid=27(mysql) groups=27(mysql)"
 
-COPY run-*.sh /usr/local/bin/
-COPY contrib /var/lib/mysql/
+# Get prefix path and path to scripts rather than hard-code them in scripts
+ENV CONTAINER_SCRIPTS_PATH=/usr/share/container-scripts/mysql \
+    MYSQL_PREFIX=/usr \
+    ENABLED_COLLECTIONS=
 
-# Loosen permission bits for group to avoid problems running container with
-# arbitrary UID
-# When only specifying user, group is 0, that's why /var/lib/mysql must have
-# owner mysql.0; that allows to avoid a+rwx for this dir
-RUN chmod -R g+rwx /var/lib/mysql && \
-    chmod a+x /usr/local/bin/run-*.sh
+ADD root /
+
+# this is needed due to issues with squash
+# when this directory gets rm'd by the container-setup
+# script.
+RUN rm -rf /etc/my.cnf.d/*
+RUN /usr/libexec/container-setup
 
 VOLUME ["/var/lib/mysql/data"]
 
 USER 27
 
-ENTRYPOINT ["run-mysqld.sh"]
-CMD ["mysqld"]
+ENTRYPOINT ["container-entrypoint"]
+CMD ["run-mysqld"]
