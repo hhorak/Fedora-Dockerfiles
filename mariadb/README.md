@@ -1,7 +1,7 @@
-MariaDB for general usage and OpenShift - Docker image
-======================================================
+MariaDB Docker image
+====================
 
-This repository contains Dockerfiles for MariaDB images for general usage and for OpenShift.
+This container image includes MariaDB server 10.0 for OpenShift and general usage.
 
 
 Environment variables and volumes
@@ -40,15 +40,15 @@ matches the user UID or name which is running inside the container.**
 Usage
 ---------------------------------
 
-For this, we will assume that you are using the `fedora/mariadb` image.
+For this, we will assume that you are using the `centos/mariadb-100-centos7` image.
 If you want to set only the mandatory environment variables and not store
 the database in a host directory, execute the following command:
 
 ```
-$ docker run -d --name mysql_database -e MYSQL_USER=user -e MYSQL_PASSWORD=pass -e MYSQL_DATABASE=db -p 3306:3306 fedora/mariadb
+$ docker run -d --name mariadb_database -e MYSQL_USER=user -e MYSQL_PASSWORD=pass -e MYSQL_DATABASE=db -p 3306:3306 centos/mariadb-100-centos7
 ```
 
-This will create a container named `mysql_database` running MySQL with database
+This will create a container named `mariadb_database` running MySQL with database
 `db` and user with credentials `user:pass`. Port 3306 will be exposed and mapped
 to the host. If you want your database to be persistent across container executions,
 also add a `-v /host/db/path:/var/lib/mysql/data` argument. This will be the MySQL
@@ -58,7 +58,7 @@ If the database directory is not initialized, the entrypoint script will first
 run [`mysql_install_db`](https://dev.mysql.com/doc/refman/5.6/en/mysql-install-db.html)
 and setup necessary database users and passwords. After the database is initialized,
 or if it was already present, `mysqld` is executed and will run as PID 1. You can
- stop the detached container by running `docker stop mysql_database`.
+ stop the detached container by running `docker stop mariadb_database`.
 
 
 MySQL root user
@@ -85,21 +85,4 @@ the environment variables aforementioned will cause a mismatch between the
 values stored in the variables and the actual passwords. Whenever a database
 container starts it will reset the passwords to the values stored in the
 environment variables.
-
-
-Test
----------------------------------
-
-This repository also provides a test framework, which checks basic functionality
-of the MariaDB image.
-
-To test the MariaDB image, you need to run the test like this:
-
-```bash
-#> cd mariadb
-#> docker build -t mariadb .
-#> IMAGE_NAME=mariadb ./test/run
-```
-
-Tested on Docker 1.8.2.
 
